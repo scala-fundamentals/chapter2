@@ -3,7 +3,6 @@ package retcalc
 import scala.io.Source
 
 case class EquityData(monthId: String, value: Double, annualDividend: Double) {
-  // comment: could use def or val or lazy val
   val monthlyDividend: Double = annualDividend / 12
 }
 

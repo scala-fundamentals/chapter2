@@ -23,14 +23,14 @@ object Returns {
     case OffsetReturns(rs, offset) => monthlyRate(rs, month + offset)
   }
 
-  def averageAnnualReturn(returns: Returns): Double = returns match {
+  def annualizedTotalReturn(returns: Returns): Double = returns match {
     case FixedReturns(r) => r
     case VariableReturns(rs) =>
       val product = rs.foldLeft(1.0) { case (acc, ret) =>
         acc * (1 + ret.monthlyRate)
       }
       (scala.math.pow(product, 1.0 / rs.size) - 1) * 12
-    case OffsetReturns(rs, _) => averageAnnualReturn(rs)
+    case OffsetReturns(rs, _) => annualizedTotalReturn(rs)
   }
 
 }

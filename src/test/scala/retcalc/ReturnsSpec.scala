@@ -48,14 +48,12 @@ class ReturnsSpec extends WordSpec with Matchers with TypeCheckedTripleEquals {
         InflationData("2117.03", 102.0))
 
       val returns = Returns.fromEquityAndInflationData(equities, inflations)
-      // TODO chapter 4: Equality type class to have tolerance on the doubles inside VariableReturn
       returns should ===(VariableReturns(Vector(
         VariableReturn("2117.02", (101.0 + 12.0 / 12) / 100.0 - 102.0 / 100.0),
         VariableReturn("2117.03", (102.0 + 12.0 / 12) / 101.0 - 102.0 / 102.0))))
     }
   }
 
-  // TODO chapter 3 deal with non-existent months?
   "VariableReturns.fromUntil" should {
     "keep only a window of the returns" in {
       val variableReturns = VariableReturns(Vector.tabulate(12) { i =>
@@ -76,9 +74,9 @@ class ReturnsSpec extends WordSpec with Matchers with TypeCheckedTripleEquals {
     }
   }
 
-  "Returns.averageAnnualReturn" should {
+  "Returns.annualizedTotalReturn" should {
     val returns = VariableReturns(Vector.tabulate(12)(i => VariableReturn(i.toString, i.toDouble / 100 / 12)))
-    val avg = Returns.averageAnnualReturn(returns)
+    val avg = Returns.annualizedTotalReturn(returns)
     "compute a geometric mean of the returns" in {
       // Excel: GEOMEAN (see geomean.ods)
       avg should ===(0.0549505735)

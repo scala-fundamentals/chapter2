@@ -77,7 +77,6 @@ class RetCalcSpec extends WordSpec with Matchers with TypeCheckedTripleEquals {
 
     "not loop forever if I enter bad parameters" in {
       val actual = RetCalc.nbOfMonthsSaving(params.copy(netIncome = 1000), FixedReturns(0.04))
-      // comment: use MaxValue first, then introduce Option
       actual should ===(Int.MaxValue)
     }
   }

@@ -18,5 +18,3 @@ class SimulatePlanAppIT extends WordSpec with Matchers with TypeCheckedTripleEqu
     }
   }
 }
-
-// Exercise: implement NbOfMonthsApp
