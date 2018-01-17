@@ -17,9 +17,13 @@ object Returns {
   }
 
 
-  def monthlyRate(returns: Returns, month: Int): Double = returns match {
-    case FixedReturns(r) => r / 12
-    case VariableReturns(rs) => rs(month % rs.length).monthlyRate
+  def monthlyRate(returns: Returns, month: Int): Option[Double] = returns match {
+    case FixedReturns(r) => Some(r / 12)
+    case VariableReturns(rs) =>
+      if (rs.isDefinedAt(month))
+        Some(rs(month).monthlyRate)
+      else
+        None
     case OffsetReturns(rs, offset) => monthlyRate(rs, month + offset)
   }
 
@@ -46,6 +50,7 @@ case class VariableReturns(returns: Vector[VariableReturn]) extends Returns {
 }
 
 case class VariableReturn(monthId: String, monthlyRate: Double)
+
 case class OffsetReturns(orig: Returns, offset: Int) extends Returns
 
 

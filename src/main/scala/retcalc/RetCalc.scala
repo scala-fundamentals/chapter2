@@ -15,62 +15,79 @@ case class MultiSimResults(successCount: Int,
   def successProbability: Double = successCount.toDouble / simCount
 }
 
+
 object RetCalc {
 
   def simulatePlan(returns: Returns, params: RetCalcParams, nbOfMonthsSavings: Int,
-                   monthOffset: Int = 0): (Double, Double) = {
+                   monthOffset: Int = 0): Option[(Double, Double)] = {
     import params._
-    val capitalAtRetirement = futureCapital(
-      returns = OffsetReturns(returns, monthOffset),
-      nbOfMonths = nbOfMonthsSavings, netIncome = netIncome, currentExpenses = currentExpenses,
-      initialCapital = initialCapital)
 
-    val capitalAfterDeath = futureCapital(
-      returns = OffsetReturns(returns, monthOffset + nbOfMonthsSavings),
-      nbOfMonths = nbOfMonthsInRetirement,
-      netIncome = 0, currentExpenses = currentExpenses,
-      initialCapital = capitalAtRetirement)
+    for {
+      capitalAtRetirement <- futureCapital(
+        returns = OffsetReturns(returns, monthOffset),
+        nbOfMonths = nbOfMonthsSavings, netIncome = netIncome, currentExpenses = currentExpenses,
+        initialCapital = initialCapital)
 
-    (capitalAtRetirement, capitalAfterDeath)
+      capitalAfterDeath <- futureCapital(
+        returns = OffsetReturns(returns, monthOffset + nbOfMonthsSavings),
+        nbOfMonths = nbOfMonthsInRetirement,
+        netIncome = 0, currentExpenses = currentExpenses,
+        initialCapital = capitalAtRetirement)
+    } yield (capitalAtRetirement, capitalAfterDeath)
   }
 
 
-  def nbOfMonthsSaving(params: RetCalcParams, returns: Returns): Int = {
+  def nbOfMonthsSaving(params: RetCalcParams, returns: Returns): Option[Int] = {
     import params._
     @tailrec
-    def loop(months: Int): Int = {
-      val (capitalAtRetirement, capitalAfterDeath) = simulatePlan(returns, params, months)
+    def loop(months: Int): Option[Int] = {
+      simulatePlan(returns, params, months) match {
+        case Some((capitalAtRetirement, capitalAfterDeath)) =>
+          if (capitalAfterDeath > 0.0)
+            Some(months)
+          else
+            loop(months + 1)
 
-      if (capitalAfterDeath > 0.0)
-        months
-      else
-        loop(months + 1)
+        case None => None
+      }
     }
 
     if (netIncome > currentExpenses)
       loop(0)
     else
-      Int.MaxValue
+      None
   }
 
   def futureCapital(returns: Returns, nbOfMonths: Int, netIncome: Int, currentExpenses: Int,
-                    initialCapital: Double): Double = {
+                    initialCapital: Double): Option[Double] = {
     val monthlySavings = netIncome - currentExpenses
-    (0 until nbOfMonths).foldLeft(initialCapital) {
+    // Non optimal: iterates until the end
+    (0 until nbOfMonths).foldLeft(Option(initialCapital)) {
       case (accumulated, month) =>
-        accumulated * (1 + Returns.monthlyRate(returns, month)) + monthlySavings
+        for {
+          acc <- accumulated
+          monthlyRate <- Returns.monthlyRate(returns, month)
+        } yield acc * (1 + monthlyRate) + monthlySavings
     }
   }
 
   def multiSim(params: RetCalcParams, nbOfMonthsSavings: Int, variableReturns: VariableReturns): MultiSimResults = {
     variableReturns.returns.indices.foldLeft(MultiSimResults(0, 0, Double.PositiveInfinity, Double.NegativeInfinity)) {
       case (acc, i) =>
-        val (capitalAtRetirement, capitalAfterDeath) = simulatePlan(variableReturns, params, nbOfMonthsSavings, i)
-        MultiSimResults(
-          successCount = if (capitalAfterDeath > 0) acc.successCount + 1 else acc.successCount,
-          simCount = i + 1,
-          minCapitalAfterDeath = if (capitalAfterDeath < acc.minCapitalAfterDeath) capitalAfterDeath else acc.minCapitalAfterDeath,
-          maxCapitalAfterDeath = if (capitalAfterDeath > acc.maxCapitalAfterDeath) capitalAfterDeath else acc.maxCapitalAfterDeath)
+        simulatePlan(variableReturns, params, nbOfMonthsSavings, i) match {
+          case Some((capitalAtRetirement, capitalAfterDeath)) =>
+            MultiSimResults(
+              successCount = if (capitalAfterDeath > 0) acc.successCount + 1 else acc.successCount,
+              simCount = i + 1,
+              minCapitalAfterDeath = if (capitalAfterDeath < acc.minCapitalAfterDeath) capitalAfterDeath else acc.minCapitalAfterDeath,
+              maxCapitalAfterDeath = if (capitalAfterDeath > acc.maxCapitalAfterDeath) capitalAfterDeath else acc.maxCapitalAfterDeath)
+
+            // Could have a more clever rule which would reduce params.nbOfMonthsInRetirement.
+            // say If the capital after nbOfMonthsInRetirement/2 is > 2*capitalAtRetirement,
+            // it is very likely that we can count it as a success, even if we cannot run
+            // the simulation until the end
+          case None => acc
+        }
     }
   }
 }

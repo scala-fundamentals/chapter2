@@ -1,36 +1,34 @@
 package retcalc
 
 import org.scalactic.{Equality, TolerantNumerics, TypeCheckedTripleEquals}
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.{Matchers, OptionValues, WordSpec}
 
-class ReturnsSpec extends WordSpec with Matchers with TypeCheckedTripleEquals {
+class ReturnsSpec extends WordSpec with Matchers with OptionValues with TypeCheckedTripleEquals {
 
   implicit val doubleEquality: Equality[Double] =
     TolerantNumerics.tolerantDoubleEquality(0.0001)
 
   "Returns.monthlyReturn" should {
     "return a fixed rate for a FixedReturn" in {
-      Returns.monthlyRate(FixedReturns(0.04), 0) should ===(0.04 / 12)
-      Returns.monthlyRate(FixedReturns(0.04), 10) should ===(0.04 / 12)
+      Returns.monthlyRate(FixedReturns(0.04), 0).value should ===(0.04 / 12)
+      Returns.monthlyRate(FixedReturns(0.04), 10).value should ===(0.04 / 12)
     }
 
     val variableReturns = VariableReturns(
       Vector(VariableReturn("2000.01", 0.1), VariableReturn("2000.02", 0.2)))
     "return the nth rate for VariableReturn" in {
-      Returns.monthlyRate(variableReturns, 0) should ===(0.1)
-      Returns.monthlyRate(variableReturns, 1) should ===(0.2)
+      Returns.monthlyRate(variableReturns, 0).value should ===(0.1)
+      Returns.monthlyRate(variableReturns, 1).value should ===(0.2)
     }
 
-    "roll over from the first rate if n > length" in {
-      Returns.monthlyRate(variableReturns, 2) should ===(0.1)
-      Returns.monthlyRate(variableReturns, 3) should ===(0.2)
-      Returns.monthlyRate(variableReturns, 4) should ===(0.1)
+    "return None if n > length" in {
+      Returns.monthlyRate(variableReturns, 2) should ===(None)
+      Returns.monthlyRate(variableReturns, 3) should ===(None)
     }
 
     "return the n+offset th rate for OffsetReturn" in {
       val returns = OffsetReturns(variableReturns, 1)
-      Returns.monthlyRate(returns, 0) should ===(0.2)
-      Returns.monthlyRate(returns, 1) should ===(0.1)
+      Returns.monthlyRate(returns, 0).value should ===(0.2)
     }
   }
 
@@ -87,7 +85,7 @@ class ReturnsSpec extends WordSpec with Matchers with TypeCheckedTripleEquals {
       // otherwise, the capital fluctuates as well as the interest rates, and we cannot use the mean
       val futCapVar = RetCalc.futureCapital(returns, 12, 0, 0, 500000)
       val futCapFix = RetCalc.futureCapital(FixedReturns(avg), 12, 0, 0, 500000)
-      futCapVar should ===(futCapFix)
+      futCapVar.value should ===(futCapFix.value)
     }
   }
 
