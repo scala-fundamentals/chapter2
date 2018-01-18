@@ -80,38 +80,4 @@ class RetCalcSpec extends WordSpec with Matchers with TypeCheckedTripleEquals {
       actual should ===(Int.MaxValue)
     }
   }
-
-
-  "RetCalc.multiSim" should {
-    "try different starting months to calculate a probability of success" in {
-      val nbOfMonthsSavings = 25 * 12
-      val returns = VariableReturns(Vector.tabulate(nbOfMonthsSavings * 2)(i =>
-        if (i <= nbOfMonthsSavings)
-          VariableReturn(i.toString, 0.04 / 12)
-        else
-          VariableReturn(i.toString, 0.03 / 12)
-      ))
-
-      val results = RetCalc.multiSim(params, nbOfMonthsSavings, returns)
-      results should ===(MultiSimResults(199, 600, -157783.64818919433, 40114.322903435284))
-      results.successProbability should ===(0.3317)
-    }
-
-    "return the same results as a simple simulation when the rate does not change" in {
-      val nbOfMonthsSavings = 25 * 12
-      val returns = VariableReturns(Vector.fill(10)(VariableReturn("a", 0.04 / 12)))
-
-      val (expectedCapitalAtRetirement, expectedCapitalAfterDeath) =
-        RetCalc.simulatePlan(returns, params = params, nbOfMonthsSavings = 25 * 12)
-      val expected = MultiSimResults(
-        successCount = 10, simCount = 10,
-        minCapitalAfterDeath = expectedCapitalAfterDeath,
-        maxCapitalAfterDeath = expectedCapitalAfterDeath)
-
-      val actual = RetCalc.multiSim(params, nbOfMonthsSavings, returns)
-
-      actual should ===(expected)
-    }
-  }
-
 }

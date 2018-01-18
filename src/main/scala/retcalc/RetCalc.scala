@@ -61,16 +61,4 @@ object RetCalc {
         accumulated * (1 + Returns.monthlyRate(returns, month)) + monthlySavings
     }
   }
-
-  def multiSim(params: RetCalcParams, nbOfMonthsSavings: Int, variableReturns: VariableReturns): MultiSimResults = {
-    variableReturns.returns.indices.foldLeft(MultiSimResults(0, 0, Double.PositiveInfinity, Double.NegativeInfinity)) {
-      case (acc, i) =>
-        val (capitalAtRetirement, capitalAfterDeath) = simulatePlan(variableReturns, params, nbOfMonthsSavings, i)
-        MultiSimResults(
-          successCount = if (capitalAfterDeath > 0) acc.successCount + 1 else acc.successCount,
-          simCount = i + 1,
-          minCapitalAfterDeath = if (capitalAfterDeath < acc.minCapitalAfterDeath) capitalAfterDeath else acc.minCapitalAfterDeath,
-          maxCapitalAfterDeath = if (capitalAfterDeath > acc.maxCapitalAfterDeath) capitalAfterDeath else acc.maxCapitalAfterDeath)
-    }
-  }
 }

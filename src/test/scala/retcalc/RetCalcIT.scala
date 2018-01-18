@@ -16,10 +16,11 @@ class RetCalcIT extends WordSpec with Matchers with TypeCheckedTripleEquals {
   "simulate a retirement plan with real market data" in {
     val returns = Returns.fromEquityAndInflationData(
       equities = EquityData.fromResource("sp500.tsv"),
-      inflations = InflationData.fromResource("cpi.tsv")).fromUntil("1997.09", "2017.10")
+      inflations = InflationData.fromResource("cpi.tsv")).fromUntil("1952.09", "2017.10")
 
-    val (capitalAtRetirement, capitalAfterDeath) = RetCalc.simulatePlan(returns, params = params, nbOfMonthsSavings = 25 * 12)
-    capitalAtRetirement should ===(500945.3646)
-    capitalAfterDeath should ===(746172.4565)
+    val (capitalAtRetirement, capitalAfterDeath) =
+      RetCalc.simulatePlan(returns, params = params, nbOfMonthsSavings = 25 * 12)
+    capitalAtRetirement should ===(468924.5522)
+    capitalAfterDeath should ===(2958841.7675)
   }
 }
