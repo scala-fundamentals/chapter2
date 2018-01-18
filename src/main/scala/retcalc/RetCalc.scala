@@ -8,13 +8,6 @@ case class RetCalcParams(nbOfMonthsInRetirement: Int,
                          initialCapital: Double)
 
 
-case class MultiSimResults(successCount: Int,
-                           simCount: Int,
-                           minCapitalAfterDeath: Double,
-                           maxCapitalAfterDeath: Double) {
-  def successProbability: Double = successCount.toDouble / simCount
-}
-
 object RetCalc {
 
   def simulatePlan(returns: Returns, params: RetCalcParams, nbOfMonthsSavings: Int,
