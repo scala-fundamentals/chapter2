@@ -1,5 +1,7 @@
 package retcalc
 
+import retcalc.RetCalcError.MoreExpensesThanIncome
+
 import scala.annotation.tailrec
 
 case class RetCalcParams(nbOfMonthsInRetirement: Int,
@@ -19,7 +21,7 @@ case class MultiSimResults(successCount: Int,
 object RetCalc {
 
   def simulatePlan(returns: Returns, params: RetCalcParams, nbOfMonthsSavings: Int,
-                   monthOffset: Int = 0): Option[(Double, Double)] = {
+                   monthOffset: Int = 0): Either[RetCalcError, (Double, Double)] = {
     import params._
 
     for {
@@ -37,32 +39,32 @@ object RetCalc {
   }
 
 
-  def nbOfMonthsSaving(params: RetCalcParams, returns: Returns): Option[Int] = {
+  def nbOfMonthsSaving(params: RetCalcParams, returns: Returns): Either[RetCalcError, Int] = {
     import params._
     @tailrec
-    def loop(months: Int): Option[Int] = {
+    def loop(months: Int): Either[RetCalcError, Int] = {
       simulatePlan(returns, params, months) match {
-        case Some((capitalAtRetirement, capitalAfterDeath)) =>
+        case Right((capitalAtRetirement, capitalAfterDeath)) =>
           if (capitalAfterDeath > 0.0)
-            Some(months)
+            Right(months)
           else
             loop(months + 1)
 
-        case None => None
+        case Left(err) => Left(err)
       }
     }
 
     if (netIncome > currentExpenses)
       loop(0)
     else
-      None
+      Left(MoreExpensesThanIncome(netIncome, currentExpenses))
   }
 
+
   def futureCapital(returns: Returns, nbOfMonths: Int, netIncome: Int, currentExpenses: Int,
-                    initialCapital: Double): Option[Double] = {
+                    initialCapital: Double): Either[RetCalcError, Double] = {
     val monthlySavings = netIncome - currentExpenses
-    // Non optimal: iterates until the end
-    (0 until nbOfMonths).foldLeft(Option(initialCapital)) {
+    (0 until nbOfMonths).foldLeft[Either[RetCalcError, Double]](Right(initialCapital)) {
       case (accumulated, month) =>
         for {
           acc <- accumulated
@@ -75,7 +77,7 @@ object RetCalc {
     variableReturns.returns.indices.foldLeft(MultiSimResults(0, 0, Double.PositiveInfinity, Double.NegativeInfinity)) {
       case (acc, i) =>
         simulatePlan(variableReturns, params, nbOfMonthsSavings, i) match {
-          case Some((capitalAtRetirement, capitalAfterDeath)) =>
+          case Right((capitalAtRetirement, capitalAfterDeath)) =>
             MultiSimResults(
               successCount = if (capitalAfterDeath > 0) acc.successCount + 1 else acc.successCount,
               simCount = i + 1,
@@ -86,7 +88,7 @@ object RetCalc {
             // say If the capital after nbOfMonthsInRetirement/2 is > 2*capitalAtRetirement,
             // it is very likely that we can count it as a success, even if we cannot run
             // the simulation until the end
-          case None => acc
+          case Left(err) => acc
         }
     }
   }

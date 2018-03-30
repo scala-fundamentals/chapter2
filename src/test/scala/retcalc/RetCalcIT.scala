@@ -1,9 +1,9 @@
 package retcalc
 
 import org.scalactic.{Equality, TolerantNumerics, TypeCheckedTripleEquals}
-import org.scalatest.{Matchers, OptionValues, WordSpec}
+import org.scalatest.{EitherValues, Matchers, WordSpec}
 
-class RetCalcIT extends WordSpec with Matchers with OptionValues with TypeCheckedTripleEquals {
+class RetCalcIT extends WordSpec with Matchers with TypeCheckedTripleEquals with EitherValues {
   implicit val doubleEquality: Equality[Double] = TolerantNumerics.tolerantDoubleEquality(0.0001)
 
   val params = RetCalcParams(
@@ -13,14 +13,16 @@ class RetCalcIT extends WordSpec with Matchers with OptionValues with TypeChecke
     initialCapital = 10000)
 
 
-  "simulate a retirement plan with real market data" in {
-    val returns = Returns.fromEquityAndInflationData(
-      equities = EquityData.fromResource("sp500.tsv"),
-      inflations = InflationData.fromResource("cpi.tsv")).fromUntil("1952.09", "2017.10")
+  "RetCalc.simulatePlan" should {
+    "simulate a retirement plan with real market data" in {
+      val returns = Returns.fromEquityAndInflationData(
+        equities = EquityData.fromResource("sp500.tsv"),
+        inflations = InflationData.fromResource("cpi.tsv")).fromUntil("1952.09", "2017.10")
 
-    val (capitalAtRetirement, capitalAfterDeath) =
-      RetCalc.simulatePlan(returns, params = params, nbOfMonthsSavings = 25 * 12).value
-    capitalAtRetirement should ===(468924.5522)
-    capitalAfterDeath should ===(2958841.7675)
+      val (capitalAtRetirement, capitalAfterDeath) =
+        RetCalc.simulatePlan(returns, params = params, nbOfMonthsSavings = 25 * 12).right.value
+      capitalAtRetirement should ===(468924.5522)
+      capitalAfterDeath should ===(2958841.7675)
+    }
   }
 }

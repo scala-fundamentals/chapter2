@@ -17,13 +17,15 @@ object Returns {
   }
 
 
-  def monthlyRate(returns: Returns, month: Int): Option[Double] = returns match {
-    case FixedReturns(r) => Some(r / 12)
+  def monthlyRate(returns: Returns, month: Int): Either[RetCalcError, Double] = returns match {
+    case FixedReturns(r) => Right(r / 12)
+
     case VariableReturns(rs) =>
       if (rs.isDefinedAt(month))
-        Some(rs(month).monthlyRate)
+        Right(rs(month).monthlyRate)
       else
-        None
+        Left(RetCalcError.ReturnMonthOutOfBounds(month, rs.size - 1))
+
     case OffsetReturns(rs, offset) => monthlyRate(rs, month + offset)
   }
 
